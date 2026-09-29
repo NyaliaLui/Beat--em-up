@@ -13,7 +13,8 @@ namespace Ironhold
         private RectTransform _root;
         private RectTransform _controls;
         private Text _hpValue, _waveText, _scoreText, _comboText, _banner;
-        private Image _hpFill, _staminaFill, _ghostFill, _vignette, _decayFill;
+        private Image _hpFill, _staminaFill, _ghostFill, _vignette, _decayFill, _bossFill;
+        private RectTransform _bossBar;
         private float _bannerTimer;
         private float _ghost = 1f;
         private float _comboPop;
@@ -55,6 +56,15 @@ namespace Ironhold
             _waveText = UIFactory.Label("WaveText", _root, "WAVE 1", 32, TextAnchor.MiddleCenter, Color.white,
                 new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0, -44), new Vector2(300, 44));
 
+            // Boss HP (under the wave readout, only while a boss is alive)
+            _bossBar = UIFactory.Rect("BossBar", _root, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1),
+                new Vector2(0, -80), new Vector2(640, 60));
+            UIFactory.Label("BossLabel", _bossBar, "WAR-CHIEF", 24, TextAnchor.MiddleCenter, new Color(1f, 0.55f, 0.45f),
+                new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 1), Vector2.zero, new Vector2(640, 28));
+            _bossFill = UIFactory.Bar("BossHp", _bossBar, new Color(0.72f, 0.12f, 0.10f, 1f),
+                new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0.5f, 0), Vector2.zero, new Vector2(640, 22));
+            _bossBar.gameObject.SetActive(false);
+
             // Score + combo (top right)
             _scoreText = UIFactory.Label("ScoreText", _root, "SCORE 0", 32, TextAnchor.MiddleRight, Color.white,
                 new Vector2(1, 1), new Vector2(1, 1), new Vector2(1, 1), new Vector2(-170, -34), new Vector2(360, 40));
@@ -91,7 +101,7 @@ namespace Ironhold
 
         private void OnStateChanged(GameState s)
         {
-            bool inGame = s == GameState.Playing || s == GameState.Paused;
+            bool inGame = s == GameState.Playing || s == GameState.Paused || s == GameState.Promo;
             if (_root != null) _root.gameObject.SetActive(inGame);
             if (_controls != null) _controls.gameObject.SetActive(s == GameState.Playing);
         }
@@ -99,7 +109,9 @@ namespace Ironhold
         private void ShowBanner(int wave)
         {
             if (_banner == null) return;
-            _banner.text = "WAVE " + wave;
+            bool boss = GameConfig.IsBossWave(wave);
+            _banner.text = boss ? "BOSS" : "WAVE " + wave;
+            _banner.color = boss ? new Color(0.9f, 0.2f, 0.15f) : GameConfig.EmberOrange;
             _bannerTimer = 1.8f;
         }
 
@@ -128,7 +140,13 @@ namespace Ironhold
             if (gm.PlayerStamina != null)
                 _staminaFill.rectTransform.anchorMax = new Vector2(gm.PlayerStamina.Normalized, 1f);
             if (gm.Waves != null)
+            {
                 _waveText.text = "WAVE " + gm.Waves.CurrentWave;
+                var boss = gm.Waves.ActiveBoss;
+                bool showBoss = boss != null && boss.Health != null && boss.IsAlive;
+                if (_bossBar.gameObject.activeSelf != showBoss) _bossBar.gameObject.SetActive(showBoss);
+                if (showBoss) _bossFill.rectTransform.anchorMax = new Vector2(boss.Health.Normalized, 1f);
+            }
             if (gm.Score != null)
             {
                 _scoreText.text = "SCORE " + gm.Score.Score.ToString("N0");

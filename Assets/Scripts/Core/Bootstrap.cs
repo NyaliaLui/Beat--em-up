@@ -61,7 +61,8 @@ namespace Ironhold
             await GlbLoader.PreloadAll(new[]
             {
                 GameConfig.ModelHero, GameConfig.ModelGrunt, GameConfig.ModelSkeleton,
-                GameConfig.ModelBrute, GameConfig.ModelCrate, GameConfig.ModelBarrel, GameConfig.ModelBrazier
+                GameConfig.ModelBrute, GameConfig.ModelCrate, GameConfig.ModelBarrel, GameConfig.ModelBrazier,
+                GameConfig.ModelChest, GameConfig.ModelChestOpen
             });
 
             PlayerController player = await BuildPlayer();
@@ -73,6 +74,11 @@ namespace Ironhold
             camera.Configure(player.transform);
 
             await BuildProps();
+
+            // Easter eggs: hidden chest in the background + the manager watching all three triggers.
+            SecretChest chest = await SecretChest.Build();
+            gm.EasterEggs = systemsGo.AddComponent<EasterEggManager>();
+            gm.EasterEggs.Configure(waves, chest);
 
             // Warm the skeletal clip library while the menu is up. Fire-and-forget by design:
             // the game is fully playable procedurally until each ActorAnimator flips Ready.
@@ -89,11 +95,13 @@ namespace Ironhold
             gm.Menu = uiGo.AddComponent<MenuController>();
             gm.Pause = uiGo.AddComponent<PauseController>();
             gm.GameOverUI = uiGo.AddComponent<GameOverController>();
+            gm.PromoUI = uiGo.AddComponent<PromoPopupController>();
 
             gm.Hud.Build(canvas, player, panelSprite, buttonSprite);
             gm.Menu.Build(canvas, titleSprite, panelSprite);
             gm.Pause.Build(canvas, panelSprite);
             gm.GameOverUI.Build(canvas, panelSprite);
+            gm.PromoUI.Build(canvas); // built last so it draws above everything
 
             gm.GoToMenu();
         }

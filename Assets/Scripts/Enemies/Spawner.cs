@@ -14,7 +14,7 @@ namespace Ironhold
 
             var cc = go.AddComponent<CharacterController>();
             cc.height = GameConfig.CharacterHeight;
-            cc.radius = 0.4f;
+            cc.radius = stats.IsBoss ? 0.55f : 0.4f;
             cc.center = new Vector3(0f, GameConfig.CharacterHeight * 0.5f, 0f);
             cc.slopeLimit = 60f;
             cc.stepOffset = 0.3f;

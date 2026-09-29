@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Ironhold
 {
-    public enum EnemyType { Grunt, Skeleton, Brute }
+    public enum EnemyType { Grunt, Skeleton, Brute, Boss }
 
     /// <summary>
     /// Per-type enemy tuning (section 7). A plain code-first class (no ScriptableObject .asset to
@@ -24,6 +24,9 @@ namespace Ironhold
         public Color FallbackColor;
         public int TokenCost;          // AttackDirector permission cost (Brute hogs 2)
         public bool IsElite;           // bigger, tougher, glowing, double points
+        public bool IsBoss => Type == EnemyType.Boss;
+        /// <summary>Brute and Boss share the heavy archetype: hyper-armor, charge, never floored.</summary>
+        public bool IsBruteLike => Type == EnemyType.Brute || Type == EnemyType.Boss;
         public GameConfig.ClipDef[] ClipSet; // skeletal clips for this archetype
 
         /// <summary>Promote to an elite variant (wave 8+, ~10% of spawns).</summary>
@@ -67,6 +70,16 @@ namespace Ironhold
                         Model = GameConfig.ModelBrute, FallbackColor = new Color(0.32f, 0.40f, 0.30f),
                         ClipSet = GameConfig.BruteClips
                     };
+                case EnemyType.Boss:
+                    // A war-chief Brute: same rig and clips, bigger, hits harder, fixed HP.
+                    return new EnemyStats
+                    {
+                        Type = type, MaxHP = GameConfig.BossMaxHP, Speed = 1.8f, AttackDamage = GameConfig.BossDamage * scale,
+                        AttackRange = 1.9f, AttackCadence = 1.8f, WindUp = 0.6f, Points = GameConfig.BossPoints,
+                        StaggerTime = 0.3f, StaggersFromLight = false, TokenCost = 2,
+                        Model = GameConfig.ModelBrute, FallbackColor = new Color(0.45f, 0.16f, 0.14f),
+                        ClipSet = GameConfig.BruteClips
+                    };
                 default: // Grunt
                     return new EnemyStats
                     {
@@ -82,7 +95,7 @@ namespace Ironhold
         public string DeathSfxKey => Type switch
         {
             EnemyType.Skeleton => SfxManager.EnemyDieSkeleton,
-            EnemyType.Brute => SfxManager.EnemyDieBrute,
+            EnemyType.Brute or EnemyType.Boss => SfxManager.EnemyDieBrute,
             _ => SfxManager.EnemyDieGrunt
         };
     }

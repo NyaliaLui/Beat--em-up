@@ -186,6 +186,42 @@ namespace Ironhold
         /// <summary>HP / damage scalar applied from wave 5 onward (speed is never scaled).</summary>
         public static float WaveStatScale(int w) => w < 5 ? 1f : 1f + 0.05f * (w - 4);
 
+        // ---- Boss (a lone boss wave after every 3 regular waves: waves 4, 8, 12...) ----
+        public const int BossWaveEvery = 4;
+        public static bool IsBossWave(int w) => w > 0 && w % BossWaveEvery == 0;
+        // HP is NOT wave-scaled so the speed-kill challenge is equally fair on every boss wave.
+        // Sustained optimal DPS (chained uppercuts / jab->finisher, stamina-limited) is ~36-45,
+        // so a flawless player lands it in ~7-9s; casual, unhurried pressing takes 12s+.
+        public const float BossMaxHP = 320f;
+        public const float BossDamage = 26f;           // wave-scaled like everything else
+        public const float BossVisualScale = 1.45f;
+        public const int BossPoints = 1500;
+
+        // ---- Easter eggs: fanbase endpoints (promo popups for the artist) ----
+        public const string PromoPatreonUrl = "https://www.patreon.com/";
+        public const string PromoMerchUrl = "https://www.shopify.com/";
+        public const string PromoComicUrl = "https://www.marvel.com/comics/issue/116194/moon_knight_fist_of_khonshu_2024";
+
+        public const float BossSpeedKillSeconds = 10f;   // fight clock starts on the boss's first hit
+        public const float PromoRevealDelay = 1.2f;      // unscaled beat between the trigger and the popup
+        public const float SecretComboMaxGap = 0.8f;     // seconds allowed between two combo presses
+
+        public enum ComboInput { Left, Right, Punch, Sword, Block, Roll }
+
+        /// <summary>The secret 8-press combo: tap-tap back and forth, double guard, roll, sword.</summary>
+        public static readonly ComboInput[] SecretCombo =
+        {
+            ComboInput.Left, ComboInput.Right, ComboInput.Left, ComboInput.Right,
+            ComboInput.Block, ComboInput.Block, ComboInput.Roll, ComboInput.Sword,
+        };
+
+        // ---- Easter egg: hidden chest (tucked behind the barrel/crate pile on the right) ----
+        public static readonly Vector3 ChestPosition = new Vector3(10.5f, 0f, 2.35f);
+        public const float ChestHeight = 0.75f;
+        public const float ChestYaw = 0f;                // flip by 180 if the model faces the wall
+        public const float ChestInteractRange = 0.7f;    // |player.x - chest.x| to swap PUNCH -> OPEN
+        public static readonly Color ChestGold = new Color(1f, 0.78f, 0.28f);
+
         // ---- Locked palette (section 11) ----
         public static readonly Color StoneGrey = new Color(0.431f, 0.416f, 0.388f);   // #6E6A63
         public static readonly Color Iron = new Color(0.290f, 0.306f, 0.341f);        // #4A4E57
@@ -214,6 +250,8 @@ namespace Ironhold
         public const string ModelCrate = "Crate";
         public const string ModelBarrel = "Barrel";
         public const string ModelBrazier = "Brazier";
+        public const string ModelChest = "Chest";           // "Chest Closed" by Quaternius (CC0, poly.pizza)
+        public const string ModelChestOpen = "ChestOpen";   // "Chest Gold" by Quaternius (CC0, poly.pizza)
 
         // ================= Attack definitions (Phase 2 combat) =================
 

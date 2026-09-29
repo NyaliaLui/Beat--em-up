@@ -15,8 +15,11 @@ namespace Ironhold
         public int CurrentWave { get; private set; }
         public bool Running { get; private set; }
         public int AliveCount => _alive.Count;  // drives the music intensity layer
-        public bool IsFrenzyWave => CurrentWave > 0 && CurrentWave % GameConfig.FrenzyWaveEvery == 0;
+        public bool IsBossWave => GameConfig.IsBossWave(CurrentWave);
+        public bool IsFrenzyWave => !IsBossWave && CurrentWave > 0 && CurrentWave % GameConfig.FrenzyWaveEvery == 0;
+        public EnemyBase ActiveBoss { get; private set; }   // HUD boss bar reads this
         public event Action<int> WaveStarted;   // HUD shows the "WAVE n" banner
+        public event Action<float> BossDefeated; // seconds from the boss's first hit to its death
 
         private Transform _player;
         private readonly List<EnemyBase> _alive = new List<EnemyBase>();
@@ -48,12 +51,14 @@ namespace Ironhold
             for (int i = _alive.Count - 1; i >= 0; i--)
                 if (_alive[i] != null) Destroy(_alive[i].gameObject);
             _alive.Clear();
+            ActiveBoss = null;
         }
 
         private void StartWave(int w)
         {
             CurrentWave = w;
-            _remainingToSpawn = GameConfig.EnemiesInWave(w);
+            // Boss waves are a lone duel so the speed-kill clock measures the player, not the crowd.
+            _remainingToSpawn = GameConfig.IsBossWave(w) ? 1 : GameConfig.EnemiesInWave(w);
             _spawnInterval = GameConfig.SpawnInterval(w);
             _spawnTimer = 0f;
             _inBreather = false;
@@ -107,11 +112,11 @@ namespace Ironhold
 
         private void SpawnOne()
         {
-            EnemyType type = PickType(CurrentWave);
+            EnemyType type = IsBossWave ? EnemyType.Boss : PickType(CurrentWave);
             float scale = GameConfig.WaveStatScale(CurrentWave);
             EnemyStats stats = EnemyStats.For(type, scale);
             if (IsFrenzyWave) stats.ApplyFrenzy();
-            if (CurrentWave >= GameConfig.EliteFirstWave && UnityEngine.Random.value < GameConfig.EliteChance)
+            if (!stats.IsBoss && CurrentWave >= GameConfig.EliteFirstWave && UnityEngine.Random.value < GameConfig.EliteChance)
                 stats.MakeElite();
 
             float spawnX;
@@ -121,12 +126,22 @@ namespace Ironhold
                 spawnX = (UnityEngine.Random.value < 0.5f) ? GameConfig.SpawnLeftX : GameConfig.SpawnRightX;
 
             EnemyBase e = Spawner.Spawn(stats, _player, spawnX, this);
-            if (e != null) _alive.Add(e);
+            if (e != null)
+            {
+                _alive.Add(e);
+                if (stats.IsBoss) ActiveBoss = e;
+            }
         }
 
         public void NotifyEnemyDead(EnemyBase e)
         {
             _alive.Remove(e);
+            if (e != null && e == ActiveBoss)
+            {
+                ActiveBoss = null;
+                float first = e.Health != null ? e.Health.FirstHitTime : -1f;
+                if (first >= 0f) BossDefeated?.Invoke(Time.time - first);
+            }
         }
 
         private static EnemyType PickType(int w)

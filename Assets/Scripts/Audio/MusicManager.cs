@@ -51,7 +51,7 @@ namespace Ironhold
         {
             if (!_started) return;
             var gm = GameManager.Instance;
-            bool inCombat = gm != null && (gm.State == GameState.Playing || gm.State == GameState.Paused);
+            bool inCombat = gm != null && (gm.State == GameState.Playing || gm.State == GameState.Paused || gm.State == GameState.Promo);
 
             float crowd = 0f;
             if (gm != null && gm.State == GameState.Playing && gm.Waves != null)

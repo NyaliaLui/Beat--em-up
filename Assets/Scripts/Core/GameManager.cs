@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Ironhold
 {
-    public enum GameState { Menu, Playing, Paused, GameOver }
+    public enum GameState { Menu, Playing, Paused, GameOver, Promo }
 
     /// <summary>
     /// Central run coordinator: owns the state machine (Menu / Playing / Paused / GameOver),
@@ -32,6 +32,8 @@ namespace Ironhold
         public MenuController Menu;
         public PauseController Pause;
         public GameOverController GameOverUI;
+        public PromoPopupController PromoUI;
+        public EasterEggManager EasterEggs;
 
         private float _deathTimer = -1f;
 
@@ -70,6 +72,7 @@ namespace Ironhold
             PlayerStamina.ResetActor();
             Player.ResetActor();
             Waves.BeginRun();
+            EasterEggs?.ResetRun();
             SetState(GameState.Playing);
             Announcer.Play(AnnouncerVO.Line.RunStart);
         }
@@ -91,6 +94,28 @@ namespace Ironhold
         public void ResumeGame()
         {
             if (State != GameState.Paused) return;
+            Time.timeScale = 1f;
+            SetState(GameState.Playing);
+        }
+
+        /// <summary>Freeze the fight under an easter-egg popup. Only from live gameplay.</summary>
+        public bool OpenPromo(PromoPopupController.Promo promo)
+        {
+            if (State != GameState.Playing || _deathTimer > 0f || PromoUI == null) return false;
+            Impact.CancelHitStop();
+            // The controls hide under the popup, so release any held move/guard buttons now.
+            Player?.OnMoveLeftUp();
+            Player?.OnMoveRightUp();
+            Player?.OnBlockUp();
+            Time.timeScale = 0f;
+            SetState(GameState.Promo);
+            PromoUI.Show(promo);
+            return true;
+        }
+
+        public void ClosePromo()
+        {
+            if (State != GameState.Promo) return;
             Time.timeScale = 1f;
             SetState(GameState.Playing);
         }
