@@ -10,6 +10,10 @@ namespace Ironhold
     /// </summary>
     public class TouchInputUI : MonoBehaviour
     {
+        private Image _punchImage;
+        private Text _punchLabel;
+        private bool _openMode;
+
         public void Build(PlayerController player, Sprite buttonSprite)
         {
             const float d = 150f;
@@ -31,7 +35,15 @@ namespace Ironhold
             var punch = UIFactory.RoundButton("BtnPunch", transform, "PUNCH", 30,
                 new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0.5f),
                 new Vector2(-150f, 120f), d, buttonSprite, Color.white);
-            punch.OnDown = player.OnPunch;
+            // In front of the hidden chest PUNCH becomes OPEN (see SecretChest / Update below).
+            punch.OnDown = () =>
+            {
+                var chest = SecretChest.Current;
+                if (chest != null) chest.Open();
+                else player.OnPunch();
+            };
+            _punchImage = punch.GetComponent<Image>();
+            _punchLabel = punch.GetComponentInChildren<Text>();
 
             var block = UIFactory.RoundButton("BtnBlock", transform, "BLOCK", 30,
                 new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0.5f),
@@ -49,6 +61,21 @@ namespace Ironhold
                 new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0.5f),
                 new Vector2(-325f, 80f), d, buttonSprite, new Color(0.7f, 1f, 0.75f, 1f));
             dodge.OnDown = player.OnDodge;
+        }
+
+        private void Update()
+        {
+            bool open = SecretChest.Current != null;
+            if (open == _openMode || _punchLabel == null) return;
+            _openMode = open;
+            _punchLabel.text = open ? "OPEN" : "PUNCH";
+            if (_punchImage != null && _punchImage.sprite != null)
+            {
+                // Keep TouchButton's current press alpha; only swap the tint.
+                Color c = open ? GameConfig.ChestGold : Color.white;
+                c.a = _punchImage.color.a;
+                _punchImage.color = c;
+            }
         }
     }
 }

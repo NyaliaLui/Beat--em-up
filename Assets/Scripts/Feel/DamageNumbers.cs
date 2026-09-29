@@ -78,7 +78,7 @@ namespace Ironhold
         private void Update()
         {
             var gm = GameManager.Instance;
-            if (gm != null && gm.State == GameState.Paused) return;
+            if (gm != null && (gm.State == GameState.Paused || gm.State == GameState.Promo)) return;
             var cam = UnityEngine.Camera.main;
             if (cam == null || _pool == null) return;
 

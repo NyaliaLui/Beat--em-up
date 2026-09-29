@@ -86,15 +86,18 @@ namespace Ironhold
         // ---- Touch input (wired by TouchInputUI) ----
         private bool InputAllowed => !_dead && GameManager.Instance != null && GameManager.Instance.State == GameState.Playing;
 
-        public void OnMoveLeftDown() { if (!InputAllowed) return; _leftHeld = true; _lastPressed = -1; }
+        public void OnMoveLeftDown() { if (!InputAllowed) return; _leftHeld = true; _lastPressed = -1; Combo(GameConfig.ComboInput.Left); }
         public void OnMoveLeftUp() { _leftHeld = false; }
-        public void OnMoveRightDown() { if (!InputAllowed) return; _rightHeld = true; _lastPressed = 1; }
+        public void OnMoveRightDown() { if (!InputAllowed) return; _rightHeld = true; _lastPressed = 1; Combo(GameConfig.ComboInput.Right); }
         public void OnMoveRightUp() { _rightHeld = false; }
-        public void OnPunch() { if (InputAllowed) _combat.TryAttack(false); }
-        public void OnSword() { if (InputAllowed) _combat.TryAttack(true); }
-        public void OnDodge() { if (InputAllowed) _combat.TryDodge(ComputeMoveInput()); }
-        public void OnBlockDown() { if (InputAllowed) _combat.SetBlock(true); }
+        public void OnPunch() { if (!InputAllowed) return; _combat.TryAttack(false); Combo(GameConfig.ComboInput.Punch); }
+        public void OnSword() { if (!InputAllowed) return; _combat.TryAttack(true); Combo(GameConfig.ComboInput.Sword); }
+        public void OnDodge() { if (!InputAllowed) return; _combat.TryDodge(ComputeMoveInput()); Combo(GameConfig.ComboInput.Roll); }
+        public void OnBlockDown() { if (!InputAllowed) return; _combat.SetBlock(true); Combo(GameConfig.ComboInput.Block); }
         public void OnBlockUp() { _combat.SetBlock(false); }
+
+        // Every press also feeds the secret-combo easter egg.
+        private static void Combo(GameConfig.ComboInput input) => GameManager.Instance?.EasterEggs?.RecordInput(input);
 
         private int ComputeMoveInput()
         {

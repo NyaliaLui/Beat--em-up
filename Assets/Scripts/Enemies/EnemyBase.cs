@@ -50,6 +50,8 @@ namespace Ironhold
 
         public bool IsAlive => _health != null && _health.IsAlive;
         public bool IsKnockedDown => _state == State.Knockdown;
+        public bool IsBoss => _stats != null && _stats.IsBoss;
+        public EnemyHealth Health => _health;
 
         private static int s_SeedCounter;
 
@@ -83,7 +85,20 @@ namespace Ironhold
             _visual = await GlbLoader.AttachVisual(stats.Model, transform, GameConfig.CharacterHeight, stats.FallbackColor);
             if (this == null || _visual == null) return;
 
-            if (stats.IsElite)
+            if (stats.IsBoss)
+            {
+                // The boss towers over the lane and glows blood-red.
+                _visual.localScale *= GameConfig.BossVisualScale;
+                var glowGo = new GameObject("BossGlow");
+                glowGo.transform.SetParent(transform, false);
+                glowGo.transform.localPosition = new Vector3(0f, 1.8f, -0.6f);
+                var glow = glowGo.AddComponent<Light>();
+                glow.type = LightType.Point;
+                glow.color = new Color(1f, 0.2f, 0.12f);
+                glow.range = 6f;
+                glow.intensity = 2.4f;
+            }
+            else if (stats.IsElite)
             {
                 // Elites read at a glance: bigger silhouette + an ember glow.
                 _visual.localScale *= GameConfig.EliteScale;
@@ -146,7 +161,7 @@ namespace Ironhold
                 case State.Approach:
                 {
                     // Brutes far from the player open with a telegraphed head-down charge.
-                    if (_stats.Type == EnemyType.Brute && _chargeCd <= 0f && dist > GameConfig.ChargeMinDistance)
+                    if (_stats.IsBruteLike && _chargeCd <= 0f && dist > GameConfig.ChargeMinDistance)
                     {
                         _chargeCd = GameConfig.ChargeCooldown;
                         EnterPhase(State.ChargeTelegraph, GameConfig.ChargeTelegraph);
@@ -331,7 +346,7 @@ namespace Ironhold
         {
             MeleeHitbox.ApplyMelee(
                 transform.position, _facing, _stats.AttackRange + 0.2f, _stats.AttackDamage,
-                0.3f, _stats.Type == EnemyType.Brute ? HitType.Knockdown : HitType.Light,
+                0.3f, _stats.IsBruteLike ? HitType.Knockdown : HitType.Light,
                 Faction.Enemy, 1, this);
         }
 
@@ -342,7 +357,7 @@ namespace Ironhold
             ReleaseTokenIfHeld();
             _kbVel = -_facing * 2f;
             _state = State.Stagger;
-            _staggerT = _stats.Type == EnemyType.Brute ? GameConfig.ParryStaggerBrute : GameConfig.ParryStagger;
+            _staggerT = _stats.IsBruteLike ? GameConfig.ParryStaggerBrute : GameConfig.ParryStagger;
             _flash?.FlashWhite(0.15f);
         }
 
@@ -367,7 +382,7 @@ namespace Ironhold
 
             if (!stillAlive) return;
 
-            bool isBrute = _stats.Type == EnemyType.Brute;
+            bool isBrute = _stats.IsBruteLike;
             // Hyper-armor identity: mid-windup AND mid-charge Brutes shrug off staggers.
             bool bruteWindupLock = isBrute && (_state == State.WindUp || _state == State.Charging);
 
